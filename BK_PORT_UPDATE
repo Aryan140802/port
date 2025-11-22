@@ -1,0 +1,59 @@
+
+#!/bin/bash
+
+ . /opt/IBM/ace/server/bin/mqsiprofile
+
+> /home/scripts/Rohit_PORT/BROKER_PORT.txt
+>/home/scripts/BROKERLIST.txt
+
+for i in `ls /var/mqsi/components/`; do for j in `ls /var/mqsi/components/$i/servers/`; do echo "$i:$j";done  ; done  >> /home/scripts/BROKERLIST.txt
+
+for i in `cat /home/scripts/BROKERLIST.txt  |grep -i HEART_BEAT | grep -i isolator  | cut -d ":" -f2`
+do
+BK=$i
+
+
+PORT=$( mqsireportproperties HEART_BEAT -e $i  -o HTTPConnector -r  | grep -i ListenerPort | cut -d "'" -f2 | sort -u )
+
+chk=`sh /home/scripts/Rohit_PORT/CHK4D.sh ${PORT}`
+
+if [ "${chk}" == "1" ]
+then
+        echo "${i}:${PORT}" >> /home/scripts/Rohit_PORT/BROKER_PORT.txt
+else
+        PORT=`cat /var/mqsi/components/HEART_BEAT/servers/$i/server.conf.yaml  | grep -i HTTPConnector: -A5 | grep -i "ListenerPort" | cut -d ":" -f2 | awk '{print $1}'`
+        chk=`sh /home/scripts/Rohit_PORT/CHK4D.sh ${PORT}`
+        if [ "${chk}" == "1" ]
+                then
+                        echo "${i}:${PORT}" >> /home/scripts/Rohit_PORT/BROKER_PORT.txt
+                else
+                         PORT=`cat  /var/mqsi/components/HEART_BEAT/servers/$i/overrides/server.conf.yaml  | grep -i  HTTPConnector: -A2`
+                         if [ "${chk}" == "1" ]
+                                then
+                                        echo "${i}:${PORT}" >> /home/scripts/Rohit_PORT/BROKER_PORT.txt
+                                else
+                                        echo "${i}:9980" >> /home/scripts/Rohit_PORT/BROKER_PORT.txt
+                         fi
+        fi
+fi
+
+
+#echo "${i}:${PORT}" >> /home/scripts/Rohit_PORT/BROKER_PORT.txt
+
+done
+#---------------------------------------------------ISOLATOREND------------------------------
+for i in `cat /home/scripts/BROKERLIST.txt | cut -d ":" -f1 | sort -u | grep -v CACHE  | grep -v HEART_BEAT`
+do
+BK=$i
+PORT=$(mqsireportproperties $i  -b httplistener -o HTTPConnector -a  | grep -i Listenerport | cut -d "'" -f2)
+if [ "${PORT}" == "" ]
+then
+  echo ;
+else
+echo "${i}:${PORT}" >> /home/scripts/Rohit_PORT/BROKER_PORT.txt
+fi
+done
+
+chmod 777 /home/scripts/Rohit_PORT/BROKER_PORT.txt;
+
+sh /home/scripts/Rohit_PORT/GET_UDPPORT.sh
