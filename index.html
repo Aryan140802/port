@@ -1,0 +1,93 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EIS MONITORING</title>
+
+
+ <!-- add icon link -->
+ <link rel = "icon" href ="EISicon.png" type = "image/x-icon">
+
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="button.css">
+    <link rel="stylesheet" href="db.css">
+    <link rel="stylesheet" href="switch.css">
+    <link rel="stylesheet" href="loader.css">
+    <link rel="stylesheet" href="indexm.css">
+    <link rel="stylesheet" href ="alertsStyle.css">
+</head>
+
+<body>
+<div class="title_div">
+
+<div style="padding-left: 0.5%" id='PORTAL_TEXT' onclick="refreshpage()" > EIS PORTAL</div>
+
+
+
+
+<div class="Select_zone_div">
+    <label for="cars">CHOOSE A ZONE :</label>
+    <select name="ZONES" id="select_zone">
+
+        <option value="UNIFIED">UNIFIED</option>
+        <option value="PR">PR</option>
+        <option value="DR">DR</option>
+    </select>
+</div>
+
+
+<div id="alert-widget-container"></div>
+
+<!-- SLIDER  -->
+
+<!--
+<label class="switch">
+ <input type="checkbox" id="CHECKBOX_PR_DR">
+ <span class="slider round"></span>
+</label>
+
+    -->
+<!-- SLIDER\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\  -->
+
+<div class="date_div" id="HISTORICDATA_div" >
+       <label class="DATE_LABEL">Enter Date :</label>
+    <input class="date_time" type="datetime-local" name="date" id="DATE_TIME">
+    <input type="button" value="Get Data" class="GET_DATA_BUTTON" id="GET_DATA_BUTTON">
+
+</div></div>
+ <div id="Datedisplay_div"></div>
+
+
+<div id="DROP_DIV" class="wow bounceInUp">
+        +
+        <div id="DROP_DOWN"></div>
+        </div>
+
+    <div id="pin_div"></div>
+
+
+
+
+
+<div class="tablecontainer" id="tablecontainer_div"> </div>
+
+
+
+
+<script type="text/javascript" src="wow/wow.min.js"></script>
+<script>
+new WOW().init();
+</script>
+<script src="MAIN_WTH_ZN.js"></script>
+<script  src="Refresh.js"></script>
+<script  src="Reup.js"></script>
+
+
+<script  src="makeonetb.js"></script>
+<script src="alertsJson.js"></script>
+
+</body>
+</html>
