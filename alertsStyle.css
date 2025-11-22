@@ -1,0 +1,113 @@
+/* Styling for the fixed alert box */
+ @keyframes blink {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+#alert-box {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 120px;
+  padding: 10px;
+  border-radius: 10px;
+  background-color: #f44336; /* Red for alerts */
+  color: white;
+  text-align: center;
+  font-family: Arial, sans-serif;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s;
+  z-index: 1000; /* Ensure it's on top */
+}
+.blink{
+animation: blink 1s infinite;
+}
+
+#alert-box:hover {
+  transform: scale(1.05);
+}
+
+#alert-box .icon {
+  font-size: 24px;
+}
+
+#alert-box .count {
+  font-size: 24px;
+  font-weight: bold;
+  display: block;
+}
+
+#alert-box .message {
+  font-size: 12px;
+}
+
+/* Styling for the alert table (initially hidden) */
+#alert-table {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80%;
+  max-width: 900px;
+  max-height: 80%;
+  background-color: white;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  padding: 20px;
+  z-index: 1001; /* Above the alert box */
+  display: none; /* Hidden by default */
+  overflow: auto; /* Scroll for long content */
+}
+
+#alert-table h3 {
+  margin-top: 0;
+  text-align: center;
+  color: #333;
+}
+
+#alert-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#alert-table th, #alert-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+#alert-table th {
+  background-color: #f2f2f2;
+  color:#000000
+}
+
+#alert-table .table-container {
+  overflow-y: auto;
+  max-height: 400px;
+}
+
+#close-table-btn {
+  display: block;
+  margin-top: 20px;
+  width: 100%;
+  padding: 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+#close-table-btn:hover {
+  background-color: #0056b3;
+}
