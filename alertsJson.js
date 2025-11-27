@@ -1,10 +1,17 @@
-// Function to fetch JSON and render the alert widget
+// Function to fetch JSON and render the alert widget (remains the same)
 async function fetchAndRenderAlerts() {
-  const jsonUrl = 'main_alerts.json'; // Replace with the actual path to your JSON file
-
+  const jsonUrl = 'main_alerts.json'; 
   try {
     const response = await fetch(jsonUrl);
-    const data = await response.json();
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const rawData = await response.text(); 
+    let data;
+    try {
+        data = JSON.parse(rawData);
+    } catch (e) {
+        console.error('Could not parse JSON. Ensure the file contains one valid JSON object structure.', e);
+        return;
+    }
     renderAlertWidget(data);
   } catch (error) {
     console.error('Error fetching JSON data:', error);
@@ -16,27 +23,28 @@ function renderAlertWidget(jsonData) {
   const container = document.getElementById('alert-widget-container');
   if (!container) return;
 
-  // Find all non-"No issue." alerts
   const allAlerts = [];
+
   for (const ipAddress in jsonData) {
-    for (const sys in jsonData[ipAddress]) {
-      for (const key in jsonData[ipAddress][sys]) {
-        if (jsonData[ipAddress][sys][key] !== "No issue.") {
-          allAlerts.push({
-            ip: ipAddress,
-            system: sys,
-            component: key,
-            message: jsonData[ipAddress][sys][key]
-          });
-        }
-      }
+    const errorsList = jsonData[ipAddress];
+    if (Array.isArray(errorsList) && errorsList.length > 0) {
+      errorsList.forEach((errorObj, index) => {
+        allAlerts.push({
+          id: `${ipAddress}-${index}-${Date.now()}`, 
+          ip: ipAddress,
+          broker: errorObj.Broker_Name,
+          eg: errorObj.Eg_Name,
+          message: errorObj.Error,
+	  time : errorObj.IssueTime,
+          env: ipAddress.startsWith('10.188') ? 'PR' : (ipAddress.startsWith('10.177') ? 'DR' : 'Other')
+        });
+      });
     }
   }
 
-  // Calculate the total number of non-"No issue." alerts
   const alertCount = allAlerts.length;
 
-  // Create the alert box
+  // --- Alert Box (Widget) Creation ---
   const alertBox = document.createElement('div');
   alertBox.id = 'alert-box';
   alertBox.innerHTML = `
@@ -44,59 +52,145 @@ function renderAlertWidget(jsonData) {
     <span class="count">${alertCount}</span>
     <div class="message">Alerts</div>
   `;
-if (alertCount > 0){
-	alertBox.className = "blink";
-}
+  if (alertCount > 0) {
+    alertBox.className = "blink";
+  }
   container.appendChild(alertBox);
 
-  // Create the table and make it initially hidden
+  // --- Modal (Backdrop and Table) Creation ---
+  const backdrop = document.createElement('div');
+  backdrop.className = 'backdrop';
+  backdrop.style.display = 'none';
+  document.body.appendChild(backdrop);
+
   const alertTable = document.createElement('div');
   alertTable.id = 'alert-table';
   alertTable.style.display = 'none';
+  container.appendChild(alertTable);
 
-  if (alertCount > 0) {
-    const tableHtml = `
-      <h3>Active Alerts (${alertCount})</h3>
+  function closeAlertTable() {
+    alertTable.style.display = 'none';
+    backdrop.style.display = 'none';
+  }
+
+  // Helper function to generate table rows, now with IP grouping using rowspan
+  function generateTableRows(filterEnv = null) {
+    const filteredAlerts = filterEnv 
+      ? allAlerts.filter(alert => alert.env === filterEnv) 
+      : allAlerts;
+    
+    // 1. Sort alerts by IP
+    filteredAlerts.sort((a, b) => {
+        const numA = Number(a.ip.split('.').map(num => num.padStart(3, '0')).join(''));
+        const numB = Number(b.ip.split('.').map(num => num.padStart(3, '0')).join(''));
+        return numA - numB;
+    });
+
+    let tableHtml = '';
+    let ipGroups = {}; // Object to count occurrences of each IP
+    
+    // Count group sizes
+    filteredAlerts.forEach(alert => {
+        ipGroups[alert.ip] = (ipGroups[alert.ip] || 0) + 1;
+    });
+
+    let previousIp = '';
+
+    filteredAlerts.forEach(alert => {
+        tableHtml += `<tr class="alert-row ${alert.env}" data-alert-id="${alert.id}">`;
+
+        // 2. Add IP Cell with Rowspan (only for the first item in the group)
+        if (alert.ip !== previousIp) {
+            const rowSpanCount = ipGroups[alert.ip];
+            tableHtml += `
+                <td rowspan="${rowSpanCount}" class="ip-group-cell">
+                    <strong>${alert.ip}</strong>
+                </td>
+            `;
+            previousIp = alert.ip; // Update the previous IP tracker
+        }
+
+        // 3. Add the rest of the cells
+        tableHtml += `
+            <td>${alert.broker}</td>
+            <td>${alert.eg}</td>
+            <td>${alert.message}</td>
+	        <td>${alert.time}</td>
+        </tr>
+        `;
+    });
+
+    return tableHtml;
+  }
+
+  // Function to render the full table structure including tabs
+  function renderTableContent(activeTab = 'PR') {
+    const prCount = allAlerts.filter(a => a.env === 'PR').length;
+    const drCount = allAlerts.filter(a => a.env === 'DR').length;
+    const currentAlerts = allAlerts.filter(a => a.env === activeTab);
+
+    alertTable.innerHTML = `
+      <h3>Active Alerts (${currentAlerts.length})</h3>
+
+      <div class="tabs-container">
+        <button class="tab-btn ${activeTab === 'PR' ? 'active' : ''}" data-env="PR">
+          PR Alerts (${prCount})
+        </button>
+        <button class="tab-btn ${activeTab === 'DR' ? 'active' : ''}" data-env="DR">
+          DR Alerts (${drCount})
+        </button>
+      </div>
+
       <div class="table-container">
         <table>
           <thead>
             <tr>
-              <th>Server</th>
-              <th>Broker</th>
-              <th>EG</th>
-              <th>Message</th>
+              <!-- Adjusted Headers for column layout -->
+              <th>Server IP</th>
+              <th>Broker Name</th>
+              <th>EG Name</th>
+              <th>Error Message</th>
+	      <th>Time</th>
             </tr>
           </thead>
-          <tbody>
-            ${allAlerts.map(alert => `
-              <tr>
-                <td>${alert.ip}</td>
-                <td>${alert.system}</td>
-                <td>${alert.component}</td>
-                <td>${alert.message}</td>
-              </tr>
-            `).join('')}
+          <tbody id="alert-table-body">
+            ${generateTableRows(activeTab)}
           </tbody>
         </table>
       </div>
-      <button id="close-table-btn">Close</button>
+      <button id="close-table-btn" class="modal-action-btn">Close</button>
     `;
-    alertTable.innerHTML = tableHtml;
-  } else {
-    alertTable.innerHTML = `<h3>No Active Alerts</h3><button id="close-table-btn">Close</button>`;
   }
-  
+
+  // --- EVENT DELEGATION ---
+  alertTable.addEventListener('click', function(event) {
+    if (event.target.closest('.tab-btn')) {
+        const selectedEnv = event.target.closest('.tab-btn').getAttribute('data-env');
+        renderTableContent(selectedEnv);
+    }
+
+    if (event.target.id === 'close-table-btn') {
+        closeAlertTable();
+    }
+  });
+
+  // --- Initial Setup ---
+  if (alertCount > 0) {
+    renderTableContent('PR'); 
+  } else {
+    alertTable.innerHTML = `<h3>No Active Alerts</h3><button id="close-table-btn" class="modal-action-btn">Close</button>`;
+  }
+
   container.appendChild(alertTable);
 
-  // Add event listeners for showing/hiding the table
   alertBox.addEventListener('click', () => {
     alertTable.style.display = 'block';
+    backdrop.style.display = 'block';
   });
 
-  document.getElementById('close-table-btn').addEventListener('click', () => {
-    alertTable.style.display = 'none';
-  });
+  backdrop.addEventListener('click', closeAlertTable);
 }
 
-// Call the main function to start everything
+// Call the main function to start everything when the script loads
 fetchAndRenderAlerts();
+
